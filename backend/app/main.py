@@ -1,4 +1,7 @@
-
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
+from app.database.connection import engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -44,3 +47,24 @@ def dashboard():
         "skills_identified": 0,
         "interviews_completed": 0
     }
+@app.get("/api/v1/database-check")
+def database_check():
+    try:
+        with engine.connect() as connection:
+            database_name = connection.execute(
+                text("SELECT current_database()")
+            ).scalar_one()
+
+        return {
+            "status": "success",
+            "message": "PostgreSQL connected successfully!",
+            "database": database_name
+        }
+
+    except SQLAlchemyError as error:
+        print("Database connection error:", error)
+
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to connect to PostgreSQL database."
+        )
